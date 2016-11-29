@@ -26,7 +26,7 @@ int main(int argc, char *argv[]){
         exit(1);
     } 
     bincount = atoi(argv[1]); //bincount
-    samplecount = atoi(argv[1]); //sampple count
+    samplecount = atoi(argv[2]); //sampple count
     //}
 
     //std::random_device rd;
