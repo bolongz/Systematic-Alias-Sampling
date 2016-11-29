@@ -1,4 +1,4 @@
-This is C++ program to generate the SAS method. 
+This is C++ program to implement the SAS method. 
 
 References paper: 
 
