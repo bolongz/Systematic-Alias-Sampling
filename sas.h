@@ -35,6 +35,7 @@ class SystematicAliasSampling{
         /* initial value table */
     //private:
         /* Tables after constructing the Alias Table */
+        std::random_device rd;
     public:
         Table aliasvalue;
         Table aliasindices;
@@ -131,8 +132,7 @@ class SystematicAliasSampling{
         }
     public:
         double _random(double _min, double _max){
-            std::random_device rd;
-
+            //std::random_device rd;
             /* generate the random double value from [0.0, bincount) */
             std::mt19937 gen(rd());
             std::uniform_real_distribution<> __random(_min, _max);
