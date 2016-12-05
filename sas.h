@@ -21,7 +21,7 @@
 #include <cmath>
 #include <random>
 #include <stack>
-
+#include <algorithm>
 
 class SystematicAliasSampling{
 
@@ -33,8 +33,9 @@ class SystematicAliasSampling{
         Table pmf; // probability mass function;
         Values values;  // values corresponding to the probability mass function
         /* initial value table */
-    private:
+    //private:
         /* Tables after constructing the Alias Table */
+    public:
         Table aliasvalue;
         Table aliasindices;
         Table aliasprobabilities;
@@ -46,6 +47,7 @@ class SystematicAliasSampling{
 
         int minbatchsize = 16;
         int minrecursize = 4 * minbatchsize;
+        //int minrecursize = 4 * minbatchsize;
         
         int batchsplitnumerator = 7;
         int batchsplitdenominator = 13;
@@ -100,8 +102,9 @@ class SystematicAliasSampling{
             /* Denote by G the set of i, if F[i] >= 1, otherwise S*/
             
             for(size_t i = 0; i < bincount ; i++) {
-                if(F[i] >= 1.0) G.push(i);
+                if(F[i] >= 1.0 || fabs(F[i] - 1.0) < 1e-6) G.push(i);
                 else S.push(i);
+                
                 aliasindices[i] = i;
             }
              
@@ -112,7 +115,7 @@ class SystematicAliasSampling{
                S.pop(); // remove the top element of stack S
                int k = G.top(); //get the top element in the stack G
                aliasindices[j] = k;
-               aliasprobabilities[j] = 1.0 - F[j];
+               //aliasprobabilities[j] = 1.0 - F[j];
                
                F[k] = (F[k] + F[j]) -1.0;
                if(F[k] < 1.0){
@@ -124,6 +127,7 @@ class SystematicAliasSampling{
             for(size_t i = 0; i < bincount ; i++) {
                 aliasvalue[i] = values[aliasindices[i]];
             }
+            aliasprobabilities = F;
         }
     public:
         double _random(double _min, double _max){
@@ -153,9 +157,11 @@ class SystematicAliasSampling{
         double aliassample(int intpart, double fracpart){
             
             if(fracpart <= aliasprobabilities[intpart]){
-                return aliasvalue[intpart];
-            }else{
+                //return aliasvalue[intpart];
                 return values[intpart];
+            }else{
+                //return values[intpart];
+                return aliasvalue[intpart];
             }
         }
 
@@ -167,9 +173,7 @@ class SystematicAliasSampling{
                 if(samplecount <= minrecursize){
                     splitindex = minbatchsize;
                 }else{
-                    splitindex = int(samplecount * (double(batchsplitnumerator) 
-                                / batchsplitdenominator));
-                
+                    splitindex = samplecount * batchsplitnumerator / batchsplitdenominator;
                 }
                 systematicaliassampling(samplecount - splitindex, samples, fillfrom);
                 systematicaliassampling(splitindex, samples, fillfrom + samplecount - splitindex);
@@ -203,6 +207,51 @@ class SystematicAliasSampling{
                 samples[i] = aliassample(int(d), d - int(d));
                 i++;
             }
+        }
+
+        void empirical_distribution(Table &samples, Values &edf){
+            std::sort(samples.begin(), samples.end()); 
+            size_t count = 0;
+            double last = samples[samples.size() - 1];
+            for(size_t i = 0; i < values.size(); i++){
+                count = 0;
+                if(values[i] < samples[0] && fabs(samples[0] - values[i]) > 1e-6){
+                    edf[i] = 0.0;
+                    continue;
+                }else if(values[i] > last && fabs(values[i] - last) >1e-6){
+                
+                    edf[i] = 1.0;
+                    continue;
+                }else{
+                    for(size_t j = 0 ; j < samples.size(); j++){
+                        if( values[i] >= samples[j] || fabs(values[i] - samples[j]) < 1e-6 ){
+                            count++;
+                        }else{
+                            break;
+                        }
+
+                    }
+                    edf[i] = double(count) / bincount;
+                }
+            }
+        
+        }
+
+        void cummulative_distribution(Table &cdf){
+            for(size_t i = 0; i < bincount; i++){
+                if(i == 0) cdf[i] = pmf[i];
+                else{
+                    cdf[i] = cdf[i-1] + pmf[i];
+                }
+            }
+        }
+
+        double cramer_von_mises(const Table &cdf, const Table &edf){
+            double sum = 0.0;
+            for(size_t i = 0; i < bincount; i++){
+                sum += (edf[i] - cdf[i]) * (edf[i] - cdf[i]);
+            }
+            return sqrt(sum / bincount);
         }
 
 
