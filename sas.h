@@ -133,7 +133,6 @@ class SystematicAliasSampling{
     public:
         double _random(double _min, double _max){
             //std::random_device rd;
-            /* generate the random double value from [0.0, bincount) */
             std::mt19937 gen(rd());
             std::uniform_real_distribution<> __random(_min, _max);
             return __random(gen);
@@ -157,11 +156,11 @@ class SystematicAliasSampling{
         double aliassample(int intpart, double fracpart){
             
             if(fracpart <= aliasprobabilities[intpart]){
-                //return aliasvalue[intpart];
-                return values[intpart];
-            }else{
-                //return values[intpart];
                 return aliasvalue[intpart];
+                //return values[intpart];
+            }else{
+                return values[intpart];
+                //return aliasvalue[intpart];
             }
         }
 
@@ -194,6 +193,24 @@ class SystematicAliasSampling{
                 }
             }
         
+        }
+
+        /* sas method without taking care of divisible problem */
+        void simple_sas(int samplecount, Table &samples, int fillfrom = 0){
+                
+                double steps = double(bincount) / samplecount;
+                double r = steps * (1.0 - _random(0.0, 1.0));
+                double x =  bincount - r;
+                int i = fillfrom;
+
+                int fillto = fillfrom + samplecount;
+                while(i < fillto){
+                    int ri = int(x);
+                    int rf  = x  -ri;
+                    samples[i] = aliassample(ri, rf);
+                    x -= steps;
+                    i++;
+                }
         }
         /*Gold ratio alias sampling: results in samples */
         void goldratioaliassampling(int samplecount, Table &samples){
@@ -231,7 +248,7 @@ class SystematicAliasSampling{
                         }
 
                     }
-                    edf[i] = double(count) / bincount;
+                    edf[i] = double(count) / samples.size();
                 }
             }
         
