@@ -27,67 +27,40 @@ void __normal_distribution(int samplecount, std::vector<double> &samples){
     }
 }
 
-/*double cramer_von_mises_alias(int bincount, int samplecount){
-   
-    std::cout << "DFJLSFJL:SFJ:SF"; 
-    std::vector<double> pmf;
-    std::vector<double> values;
-    
-    double h = (8.0) / (bincount - 1); //[take value in [-4, 4]
-    for(int i = 0; i < bincount; i++){
-        double t = -4 + i * h;
-        values.push_back(t);
-        pmf.push_back(_normal_distribution(0.0, 1.0, t));
-    }
-    
-    SystematicAliasSampling _sample(pmf, values);
-    std::vector<double> samples(samplecount); // store the results
-    
-    std::uniform_real_distribution<> ___random(0.0, bincount );
-    for(int i = 0; i < samplecount; i++){
-        double x  = ___random(gen);
-        samples[i] = _sample.aliassample(int(x), x - int(x));
-    }
-
-    //for(size_t i = 0; i < samples.size(); i++) std::cout << samples[i] <<std::endl;
-    
-    std::vector<double> edf(bincount);
-    std::vector<double> cdf(bincount);
-   
-    _sample.cummulative_distribution(cdf);
-    _sample.empirical_distribution(samples, edf);
-   
-    //for(size_t i = 0; i < edf.size(); i++) std::cout << edf[i] << std::endl;
-    double cvm = _sample.cramer_von_mises(cdf, edf);
-    
-    return cvm;
-}
- */   
 double cramer_von_mises_iid(int bincount, int samplecount){
     
     std::vector<double> pmf;
     std::vector<double> values;
     
-    double h = (8.0) / (bincount - 1); //[take value in [-4, 4]
+    double h = (20.0) / (bincount - 1); //[take value in [-4, 4]
     for(int i = 0; i < bincount; i++){
-        double t = -4 + i * h;
+        double t = -10 + i * h;
         values.push_back(t);
-        pmf.push_back(_normal_distribution(0.0, 1.0, t));
+        pmf.push_back(_normal_distribution(0.0, 1.0, t) + 0.02);
     }
     
     SystematicAliasSampling _sample(pmf, values);
-    
+    _sample.aliastable();
+
     std::vector<double> samples(samplecount); // store the results
-    
-    __normal_distribution(samplecount, samples);
-    //for(size_t i = 0; i < samples.size(); i++) std::cout << samples[i] <<std::endl;
-    std::vector<double> edf(bincount);
     std::vector<double> cdf(bincount);
-   
     _sample.cummulative_distribution(cdf);
+    
+    std::uniform_real_distribution<> __random(0.0, 1.01);
+    
+    /* binary search */
+    for(int i = 0; i < samplecount; i++){
+        double x  = __random(gen);
+        if(x > 1.0) x = 1.0;
+        size_t index = std::upper_bound(cdf.begin(), cdf.end(), x) - cdf.begin();
+        samples[i] = values[index];
+    }
+    
+    
+    std::vector<double> edf(bincount);
+   
     _sample.empirical_distribution(samples, edf);
    
-    //for(size_t i = 0; i < edf.size(); i++) std::cout << edf[i] << std::endl;
     double cvm = _sample.cramer_von_mises(cdf, edf);
     
     return cvm;
@@ -97,11 +70,11 @@ double cramer_von_mises_sas(int bincount, int samplecount){
     std::vector<double> pmf;
     std::vector<double> values;
     
-    double h = (8.0) / (bincount - 1); //[take value in [-4, 4]
+    double h = (20.0) / (bincount - 1); //[take value in [-4, 4]
     for(int i = 0; i < bincount; i++){
-        double t = -4 + i * h;
+        double t = -10 + i * h;
         values.push_back(t);
-        pmf.push_back(_normal_distribution(0.0, 1.0, t));
+        pmf.push_back(_normal_distribution(0.0, 1.0, t) +0.02);
     }
     
     SystematicAliasSampling _sample(pmf, values);
@@ -109,24 +82,24 @@ double cramer_von_mises_sas(int bincount, int samplecount){
     std::vector<double> samples(samplecount); // store the results
     _sample.aliastable(); //generate table
     
+    std::vector<double> cdf(bincount);
+    _sample.cummulative_distribution(cdf);
+    
+
     //_sample.systematicaliassampling(samplecount, samples);
     _sample.simple_sas(samplecount, samples);
+    //_sample.goldratioaliassampling(samplecount, samples);
+
     std::vector<double> edf(bincount);
-    std::vector<double> cdf(bincount);
-   
-    _sample.cummulative_distribution(cdf);
     _sample.empirical_distribution(samples, edf);
     
-   // for(int i = 0; i< samplecount; i++){
-   //     std::cout << edf[i] << std::endl;
-    
-   // }
     double cvm = _sample.cramer_von_mises(cdf, edf);
     
     return cvm;
 }
 int main(int argc, char *argv[]){
 
+    
     int samplecount = 0;
     int bincount = 0;
 
@@ -135,8 +108,9 @@ int main(int argc, char *argv[]){
         exit(1);
     } 
     bincount = atoi(argv[1]); //bincount
-    samplecount = atoi(argv[2]); //sampple count
+   // samplecount = atoi(argv[2]); //sampple count
     
+    /*
     struct timeval tvs, tvm; 
     std::vector<double> pmf;
     std::vector<double> values;
@@ -149,30 +123,32 @@ int main(int argc, char *argv[]){
         pmf.push_back(_normal_distribution(0.0, 1.0, t));
     }
     
-    /* initial sas class */
+    //  initial sas class 
     SystematicAliasSampling _sample(pmf, values);
     
     
     std::vector<double> samples(samplecount); // store the results
     _sample.aliastable(); //generate table
-    std::vector<double> av = _sample.aliasvalue;;
-    std::sort(av.begin(), av.end());
+    //std::vector<double> av = _sample.aliasvalue;;
+    //std::sort(av.begin(), av.end());
 
-    for(int i = 0 ; i < av.size(); i++){
+    //for(int i = 0 ; i < av.size(); i++){
         //std::cout << av[i] << std::endl;
    //     std::cout << _normal_distribution(0.0, 1.0, av[i]) << std::endl;
-    } 
+    //} 
     std::vector<double> cdf(bincount);
     _sample.cummulative_distribution(cdf);
     
-    std::uniform_real_distribution<> __random(0.0, 1.0);
+    std::uniform_real_distribution<> __random(0.0, 1.01);
     
     gettimeofday(&tvs, NULL);
     
-    /* binary search */
+    // binary search 
+    std::vector<double> b_samples(samplecount);
     for(int i = 0; i < samplecount; i++){
         double x  = __random(gen);
-        std::upper_bound(cdf.begin(), cdf.end(), x) - cdf.begin();
+        if(x > 1.0) x = 1.0;
+        b_samples[i] = values[std::upper_bound(cdf.begin(), cdf.end(), x) - cdf.begin()];
         //std::cout << std::upper_bound(cdf.begin(), cdf.end(), x) - cdf.begin() << std::endl;
         
     }
@@ -180,7 +156,7 @@ int main(int argc, char *argv[]){
     double span0 = tvm.tv_sec-tvs.tv_sec + (tvm.tv_usec-tvs.tv_usec)/1000000.0;
     std::cout << "Binary Serach cost: " << span0 <<std::endl;
     
-    /* alias sampling method */
+    // alias sampling method 
     std::uniform_real_distribution<double> ___random(0.0, bincount);
     gettimeofday(&tvs, NULL);
     std::vector<double> alias_samples(samplecount);
@@ -193,7 +169,7 @@ int main(int argc, char *argv[]){
     std::cout << "Alias method cost: " << span <<std::endl;
    
 
-    /* sas sampling */
+    // sas sampling 
     gettimeofday(&tvs, NULL);
     _sample.systematicaliassampling(samplecount, samples);
     gettimeofday(&tvm, NULL);
@@ -202,7 +178,7 @@ int main(int argc, char *argv[]){
     double span1 = tvm.tv_sec-tvs.tv_sec + (tvm.tv_usec-tvs.tv_usec)/1000000.0;
     std::cout << "SAS cost: " << span1 <<std::endl;
     
-    /*sas golden sampling */
+    //sas golden sampling 
     gettimeofday(&tvs, NULL);
     std::vector<double> samples2(samplecount);
     _sample.goldratioaliassampling(samplecount, samples2);
@@ -211,7 +187,7 @@ int main(int argc, char *argv[]){
     double span4 = tvm.tv_sec-tvs.tv_sec + (tvm.tv_usec-tvs.tv_usec)/1000000.0;
     std::cout << "SAS-golden cost: " << span4 <<std::endl;
    
-    /* normal_distribution in c++11 */
+    // normal_distribution in c++11 
     gettimeofday(&tvs, NULL);
     std::vector<double> samples3(samplecount);
     __normal_distribution(samplecount, samples3);
@@ -219,7 +195,7 @@ int main(int argc, char *argv[]){
     double span2 = tvm.tv_sec-tvs.tv_sec + (tvm.tv_usec-tvs.tv_usec)/1000000.0;
     std::cout << "normal_distribution cost: " << span2 <<std::endl;
     
-    /*discrete_distribution sampling in c++11 */
+    //discrete_distribution sampling in c++11 
     
     std::discrete_distribution<> _discrete_distribution(pmf.begin(), pmf.end());
     gettimeofday(&tvs, NULL);
@@ -232,25 +208,25 @@ int main(int argc, char *argv[]){
     std::cout << "discrete_distribution cost: " << span3 <<std::endl;
     
 
-    /*std::vector<double> edf(bincount);
+   // std::vector<double> edf(bincount);
    
-    _sample.empirical_distribution(samples, edf);
+    //_sample.empirical_distribution(b_samples, edf);
     
-    
-    for(int i = 0; i < samplecount ; i++){
-        std::cout << samples[i]<< std::endl;
+    */
+   // for(int i = 0; i < bincount ; i++){
+    //    std::cout << edf[i]<< std::endl;
         
-    }*/
+   // }
     for(int j = 0 ; j < 1000; j ++){
         for(int i = 20; i < 2 * bincount; i++){
            // std::cout << "+++++++++++++"; 
-            //double cvm = cramer_von_mises_alias(bincount, i);
+           // double cvm = cramer_von_mises_alias(bincount, i);
             double cvm = cramer_von_mises_sas(bincount, i);
             //double cvm = cramer_von_mises_iid(bincount, i);
             std::cout << cvm <<" ";
         }
         std::cout << std::endl;
- }
+    }
     return 0; 
 
 }

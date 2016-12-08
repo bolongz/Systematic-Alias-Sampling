@@ -77,22 +77,22 @@ class SystematicAliasSampling{
     private:
         
         /* normalize the arrary */
-        bool normalize(Table &_pmf){ 
+        bool normalize(){ 
             double sum = 0.0;
-            for(auto p: _pmf) sum += p; //get the sum for array
-            for(auto &p: _pmf) p = p / sum; //normalize the array
+            for(auto p: pmf) sum += p; //get the sum for array
+            for(auto &p: pmf) p = p / sum; //normalize the array
             sum = 0.0;
-            for(auto p:_pmf) sum += p;
+            for(auto p:pmf) sum += p;
             return (fabs(sum - 1.0) < 1e-6); //make sure the sum is close to 1.0
         }
     public:
         void aliastable(){
             
-            normalize(pmf);
+            if( !normalize() ) std::cout << "Wrong normalization" <<std::endl;;
             //size_t n = pmf.size();
             Table F(bincount); //define F
             for(size_t i = 0; i < bincount ; i++){
-                F[i] = pmf[i] * bincount;
+                F[i] = pmf[i] * double(bincount);
                 //std::cout << pmf[i] << " " << F[i] << std::endl;
             }
             aliasvalue.resize(bincount);
@@ -116,7 +116,7 @@ class SystematicAliasSampling{
                S.pop(); // remove the top element of stack S
                int k = G.top(); //get the top element in the stack G
                aliasindices[j] = k;
-               //aliasprobabilities[j] = 1.0 - F[j];
+               aliasprobabilities[j] = 1.0 - F[j];
                
                F[k] = (F[k] + F[j]) -1.0;
                if(F[k] < 1.0){
@@ -128,7 +128,7 @@ class SystematicAliasSampling{
             for(size_t i = 0; i < bincount ; i++) {
                 aliasvalue[i] = values[aliasindices[i]];
             }
-            aliasprobabilities = F;
+         //   aliasprobabilities = F;
         }
     public:
         double _random(double _min, double _max){
@@ -147,8 +147,8 @@ class SystematicAliasSampling{
         }
         
         bool isdivisible(size_t _bincount, size_t ssize){
-            return aldivisiable(_bincount, ssize) ||aldivisiable(_bincount *4, ssize) || 
-                aldivisiable(_bincount * 5, ssize) || aldivisiable(_bincount * 6, ssize);
+            return (aldivisiable(_bincount, ssize) ||aldivisiable(_bincount *4, ssize) || 
+                aldivisiable(_bincount * 5, ssize) || aldivisiable(_bincount * 6, ssize));
         }
     public:
 
@@ -157,6 +157,7 @@ class SystematicAliasSampling{
             
             if(fracpart <= aliasprobabilities[intpart]){
                 return aliasvalue[intpart];
+                
                 //return values[intpart];
             }else{
                 return values[intpart];
@@ -177,17 +178,19 @@ class SystematicAliasSampling{
                 systematicaliassampling(samplecount - splitindex, samples, fillfrom);
                 systematicaliassampling(splitindex, samples, fillfrom + samplecount - splitindex);
             }else{
-                
+                 
                 double steps = double(bincount) / samplecount;
                 double r = steps * (1.0 - _random(0.0, 1.0));
+                //double x =  r;
                 double x =  bincount - r;
                 int i = fillfrom;
 
                 int fillto = fillfrom + samplecount;
                 while(i < fillto){
                     int ri = int(x);
-                    int rf  = x  -ri;
+                    double rf  = x  -ri;
                     samples[i] = aliassample(ri, rf);
+                    //x += steps;
                     x -= steps;
                     i++;
                 }
@@ -199,15 +202,16 @@ class SystematicAliasSampling{
         void simple_sas(int samplecount, Table &samples, int fillfrom = 0){
                 
                 double steps = double(bincount) / samplecount;
-                double r = steps * (1.0 - _random(0.0, 1.0));
+                double r = _random(0.0, steps);
+                //double r = steps * (1.0 - _random(0.0, 1.0));
                 double x =  bincount - r;
                 int i = fillfrom;
 
                 int fillto = fillfrom + samplecount;
                 while(i < fillto){
-                    int ri = int(x);
-                    int rf  = x  -ri;
-                    samples[i] = aliassample(ri, rf);
+                  //  int ri = int(x);
+                   // int rf  = x  -ri;
+                    samples[i] = aliassample(int(x), x- int(x));
                     x -= steps;
                     i++;
                 }
@@ -235,7 +239,7 @@ class SystematicAliasSampling{
                 if(values[i] < samples[0] && fabs(samples[0] - values[i]) > 1e-6){
                     edf[i] = 0.0;
                     continue;
-                }else if(values[i] > last && fabs(values[i] - last) >1e-6){
+                }else if(values[i] >= last || fabs(values[i] - last)  < 1e-6){
                 
                     edf[i] = 1.0;
                     continue;
