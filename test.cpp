@@ -97,20 +97,9 @@ double cramer_von_mises_sas(int bincount, int samplecount){
     
     return cvm;
 }
-int main(int argc, char *argv[]){
 
-    
-    int samplecount = 0;
-    int bincount = 0;
-
-    if(argc != 3){
-        std::cout << "Usage: ./test bincount samplecount" << std::endl;
-        exit(1);
-    } 
-    bincount = atoi(argv[1]); //bincount
-   // samplecount = atoi(argv[2]); //sampple count
-    
-    /*
+void performance_test(int bincount, int samplecount){
+            
     struct timeval tvs, tvm; 
     std::vector<double> pmf;
     std::vector<double> values;
@@ -199,25 +188,153 @@ int main(int argc, char *argv[]){
     
     std::discrete_distribution<> _discrete_distribution(pmf.begin(), pmf.end());
     gettimeofday(&tvs, NULL);
-    std::vector<double> __p = _discrete_distribution.probabilities();
     for(int i = 0 ; i < samplecount; i++){
         _discrete_distribution(gen);
     }
     gettimeofday(&tvm, NULL);
     double span3 = tvm.tv_sec-tvs.tv_sec + (tvm.tv_usec-tvs.tv_usec)/1000000.0;
     std::cout << "discrete_distribution cost: " << span3 <<std::endl;
+        
+}
+
+
+
+int main(int argc, char *argv[]){
+
     
+    int samplecount = 0;
+    int bincount = 0;
+
+    if(argc != 4){
+        std::cout << "Usage: ./test bincount samplecount runtimes" << std::endl;
+        exit(1);
+    } 
+    bincount = atoi(argv[1]); //bincount
+    samplecount = atoi(argv[2]); //sampple count
+    int times = atoi(argv[3]); 
+    struct timeval tvs, tvm; 
+    std::vector<double> pmf;
+    std::vector<double> values;
+    
+    double h = (8.0) / (bincount - 1); //[take value in [-4, 4]
+    
+    for(int i = 0; i < bincount; i++){
+        double t = -4 + i * h;
+        values.push_back(t);
+        pmf.push_back(_normal_distribution(0.0, 1.0, t));
+    }
+    
+    //  initial sas class 
+    SystematicAliasSampling _sample(pmf, values);
+    
+    
+    std::vector<double> samples(samplecount); // store the results
+    _sample.aliastable(); //generate table
+    //std::vector<double> av = _sample.aliasvalue;;
+    //std::sort(av.begin(), av.end());
+
+    //for(int i = 0 ; i < av.size(); i++){
+        //std::cout << av[i] << std::endl;
+   //     std::cout << _normal_distribution(0.0, 1.0, av[i]) << std::endl;
+    //} 
+    std::vector<double> cdf(bincount);
+    _sample.cummulative_distribution(cdf);
+    
+    std::uniform_real_distribution<> __random(0.0, 1.01);
+    
+    double span0 =0.0;
+    for(int j = 0; j < times ; j++){
+        gettimeofday(&tvs, NULL);
+        // binary search 
+        std::vector<double> b_samples(samplecount);
+    
+        for(int i = 0; i < samplecount; i++){
+            double x  = __random(gen);
+            if(x > 1.0) x = 1.0;
+            b_samples[i] = values[std::upper_bound(cdf.begin(), cdf.end(), x) - cdf.begin()];
+            //std::cout << std::upper_bound(cdf.begin(), cdf.end(), x) - cdf.begin() << std::endl;
+        
+        }
+        gettimeofday(&tvm, NULL);
+        span0 += tvm.tv_sec-tvs.tv_sec + (tvm.tv_usec-tvs.tv_usec)/1000000.0;
+    }
+    //std::cout << "Binary Serach cost: " << span0 /times <<std::endl;
+    
+    // alias sampling method 
+    std::uniform_real_distribution<double> ___random(0.0, bincount);
+    
+    double span =0.0;
+    for(int j = 0; j < times; j++){
+        gettimeofday(&tvs, NULL);
+        std::vector<double> alias_samples(samplecount);
+        for(int i = 0; i < samplecount; i++){
+            double x  = ___random(gen);
+            alias_samples[i]  = _sample.aliassample(int(x), x - int(x));
+        }
+        gettimeofday(&tvm, NULL);
+        span += tvm.tv_sec-tvs.tv_sec + (tvm.tv_usec-tvs.tv_usec)/1000000.0;
+    }
+    //std::cout << "Alias method cost: " << span/times <<std::endl;
+   
+
+    // sas sampling 
+    double span1 = 0.0;
+    for(int j = 0; j < times; j++){
+        gettimeofday(&tvs, NULL);
+        _sample.systematicaliassampling(samplecount, samples);
+        gettimeofday(&tvm, NULL);
+    
+        span1 += tvm.tv_sec-tvs.tv_sec + (tvm.tv_usec-tvs.tv_usec)/1000000.0;
+    }
+    //std::cout << "SAS cost: " << span1 /times <<std::endl;
+    
+    //sas golden sampling 
+    /*gettimeofday(&tvs, NULL);
+    std::vector<double> samples2(samplecount);
+    _sample.goldratioaliassampling(samplecount, samples2);
+    
+    gettimeofday(&tvm, NULL);
+    double span4 = tvm.tv_sec-tvs.tv_sec + (tvm.tv_usec-tvs.tv_usec)/1000000.0;
+    std::cout << "SAS-golden cost: " << span4 <<std::endl;
+    */
+    // normal_distribution in c++11 
+    double span2 = 0.0;
+    for(int j = 0; j < times; j++){
+        gettimeofday(&tvs, NULL);
+        std::vector<double> samples3(samplecount);
+        __normal_distribution(samplecount, samples3);
+        gettimeofday(&tvm, NULL);
+        span2 += tvm.tv_sec-tvs.tv_sec + (tvm.tv_usec-tvs.tv_usec)/1000000.0;
+    }
+    //std::cout << "normal_distribution cost: " << span2/times <<std::endl;
+    
+    //discrete_distribution sampling in c++11 
+    
+
+    std::discrete_distribution<> _discrete_distribution(pmf.begin(), pmf.end());
+    double span3 = 0.0;
+    for(int j = 0; j < times; j++){
+        gettimeofday(&tvs, NULL);
+        std::vector<double> __p = _discrete_distribution.probabilities();
+        for(int i = 0 ; i < samplecount; i++){
+            _discrete_distribution(gen);
+        }
+        gettimeofday(&tvm, NULL);
+        span3 += tvm.tv_sec-tvs.tv_sec + (tvm.tv_usec-tvs.tv_usec)/1000000.0;
+    }
+    //std::cout << "discrete_distribution cost: " << span3/times <<std::endl;
+   
+    std::cout << span0 /times <<" " << span/times << " " << span1/times << " " << span2/times <<" " << span3/times << std::endl;
 
    // std::vector<double> edf(bincount);
    
     //_sample.empirical_distribution(b_samples, edf);
     
-    */
    // for(int i = 0; i < bincount ; i++){
     //    std::cout << edf[i]<< std::endl;
         
    // }
-    for(int j = 0 ; j < 1000; j ++){
+   /* for(int j = 0 ; j < 1000; j ++){
         for(int i = 20; i < 2 * bincount; i++){
            // std::cout << "+++++++++++++"; 
            // double cvm = cramer_von_mises_alias(bincount, i);
@@ -227,6 +344,7 @@ int main(int argc, char *argv[]){
         }
         std::cout << std::endl;
     }
+    */
     return 0; 
 
 }
