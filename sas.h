@@ -92,11 +92,9 @@ class SystematicAliasSampling{
         void aliastable(){
             
             if( !normalize() ) std::cout << "Wrong normalization" <<std::endl;;
-            //size_t n = pmf.size();
             Table F(bincount); //define F
             for(size_t i = 0; i < bincount ; i++){
                 F[i] = pmf[i] * double(bincount);
-                //std::cout << pmf[i] << " " << F[i] << std::endl;
             }
             aliasvalue.resize(bincount);
             aliasindices.resize(bincount);
@@ -163,7 +161,7 @@ class SystematicAliasSampling{
 
         /* systematicaliassampling implemetation: Using samples to store the
          * results */ 
-        void systematicaliassampling(int samplecount, Table &samples, int fillfrom = 0){
+        void systematicaliassampling(int samplecount, Table &samples, int from = 0){
             int splitindex;  
             if(samplecount > minbatchsize && isdivisible(bincount, samplecount)){
                 if(samplecount <= minrecursize){
@@ -179,10 +177,10 @@ class SystematicAliasSampling{
                 double r = steps * (1.0 - __random(gen));
                 //double x =  r;
                 double x =  bincount - r;
-                int i = fillfrom;
+                int i = from;
 
-                int fillto = fillfrom + samplecount;
-                while(i < fillto){
+                int to = from + samplecount;
+                while(i < to){
                     int ri = int(x);
                     double rf  = x  -ri;
                     samples[i] = aliassample(ri, rf);
