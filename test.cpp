@@ -9,9 +9,6 @@
 
 const double PI = 3.14159265359;
 
-std::random_device rd;
-std::mt19937 gen(rd());
-
 std::normal_distribution<double> ___normal_distribution(0.0, 1.0);
 
 double _normal_distribution(double mean, double dev, double x){
@@ -46,12 +43,11 @@ double cramer_von_mises_iid(int bincount, int samplecount){
     std::vector<double> cdf(bincount);
     _sample.cummulative_distribution(cdf);
     
-    std::uniform_real_distribution<> __random(0.0, 1.01);
+    std::uniform_real_distribution<> __random(0.0, 1.00);
     
     /* binary search */
     for(int i = 0; i < samplecount; i++){
         double x  = __random(gen);
-        if(x > 1.0) x = 1.0;
         size_t index = std::upper_bound(cdf.begin(), cdf.end(), x) - cdf.begin();
         samples[i] = values[index];
     }
@@ -128,7 +124,7 @@ void performance_test(int bincount, int samplecount){
     std::vector<double> cdf(bincount);
     _sample.cummulative_distribution(cdf);
     
-    std::uniform_real_distribution<> __random(0.0, 1.01);
+    //std::uniform_real_distribution<> __random(0.0, 1.0);
     
     gettimeofday(&tvs, NULL);
     
@@ -136,7 +132,6 @@ void performance_test(int bincount, int samplecount){
     std::vector<double> b_samples(samplecount);
     for(int i = 0; i < samplecount; i++){
         double x  = __random(gen);
-        if(x > 1.0) x = 1.0;
         b_samples[i] = values[std::upper_bound(cdf.begin(), cdf.end(), x) - cdf.begin()];
         //std::cout << std::upper_bound(cdf.begin(), cdf.end(), x) - cdf.begin() << std::endl;
         
