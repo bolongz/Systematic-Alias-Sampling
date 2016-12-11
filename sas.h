@@ -37,7 +37,7 @@ class SystematicAliasSampling{
         Table pmf; // probability mass function;
         Values values;  // values corresponding to the probability mass function
         /* initial value table */
-    //private:
+        
         /* Tables after constructing the Alias Table */
         Table aliasvalue;
         Table aliasindices;
@@ -50,7 +50,6 @@ class SystematicAliasSampling{
 
         int minbatchsize = 16;
         int minrecursize = 4 * minbatchsize;
-        //int minrecursize = 4 * minbatchsize;
         
         int batchsplitnumerator = 7;
         int batchsplitdenominator = 13;
