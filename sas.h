@@ -168,8 +168,8 @@ class SystematicAliasSampling{
                 }else{
                     splitindex = samplecount * batchsplitnumerator / batchsplitdenominator;
                 }
-                systematicaliassampling(samplecount - splitindex, samples, fillfrom);
-                systematicaliassampling(splitindex, samples, fillfrom + samplecount - splitindex);
+                systematicaliassampling(samplecount - splitindex, samples, from);
+                systematicaliassampling(splitindex, samples, from + samplecount - splitindex);
             }else{
                  
                 double steps = double(bincount) / samplecount;
@@ -192,16 +192,16 @@ class SystematicAliasSampling{
         }
 
         /* sas method without taking care of divisible problem */
-        void simple_sas(int samplecount, Table &samples, int fillfrom = 0){
+        void simple_sas(int samplecount, Table &samples, int from = 0){
                 
                 double steps = double(bincount) / samplecount;
                 //double r = _random(0.0, steps);
                 double r = steps * (1.0 - __random(gen));
                 double x =  bincount - r;
-                int i = fillfrom;
+                int i = from;
 
-                int fillto = fillfrom + samplecount;
-                while(i < fillto){
+                int to = from + samplecount;
+                while(i < to){
                   //  int ri = int(x);
                    // int rf  = x  -ri;
                     samples[i] = aliassample(int(x), x- int(x));
