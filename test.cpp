@@ -9,9 +9,6 @@
 
 const double PI = 3.14159265359;
 
-std::random_device rd;
-std::mt19937 gen(rd());
-
 std::normal_distribution<double> ___normal_distribution(0.0, 1.0);
 
 double _normal_distribution(double mean, double dev, double x){
@@ -46,12 +43,11 @@ double cramer_von_mises_iid(int bincount, int samplecount){
     std::vector<double> cdf(bincount);
     _sample.cummulative_distribution(cdf);
     
-    std::uniform_real_distribution<> __random(0.0, 1.01);
+    std::uniform_real_distribution<> __random(0.0, 1.00);
     
     /* binary search */
     for(int i = 0; i < samplecount; i++){
         double x  = __random(gen);
-        if(x > 1.0) x = 1.0;
         size_t index = std::upper_bound(cdf.begin(), cdf.end(), x) - cdf.begin();
         samples[i] = values[index];
     }
@@ -128,7 +124,7 @@ void performance_test(int bincount, int samplecount){
     std::vector<double> cdf(bincount);
     _sample.cummulative_distribution(cdf);
     
-    std::uniform_real_distribution<> __random(0.0, 1.01);
+    //std::uniform_real_distribution<> __random(0.0, 1.0);
     
     gettimeofday(&tvs, NULL);
     
@@ -136,7 +132,6 @@ void performance_test(int bincount, int samplecount){
     std::vector<double> b_samples(samplecount);
     for(int i = 0; i < samplecount; i++){
         double x  = __random(gen);
-        if(x > 1.0) x = 1.0;
         b_samples[i] = values[std::upper_bound(cdf.begin(), cdf.end(), x) - cdf.begin()];
         //std::cout << std::upper_bound(cdf.begin(), cdf.end(), x) - cdf.begin() << std::endl;
         
@@ -211,7 +206,9 @@ int main(int argc, char *argv[]){
     } 
     bincount = atoi(argv[1]); //bincount
     samplecount = atoi(argv[2]); //sampple count
-    int times = atoi(argv[3]); 
+    int times  = atoi(argv[3]) / samplecount; 
+    
+    
     struct timeval tvs, tvm; 
     std::vector<double> pmf;
     std::vector<double> values;
@@ -228,7 +225,6 @@ int main(int argc, char *argv[]){
     SystematicAliasSampling _sample(pmf, values);
     
     
-    std::vector<double> samples(samplecount); // store the results
     _sample.aliastable(); //generate table
     //std::vector<double> av = _sample.aliasvalue;;
     //std::sort(av.begin(), av.end());
@@ -241,13 +237,12 @@ int main(int argc, char *argv[]){
     _sample.cummulative_distribution(cdf);
     
     std::uniform_real_distribution<> __random(0.0, 1.01);
-    
+
     double span0 =0.0;
     for(int j = 0; j < times ; j++){
         gettimeofday(&tvs, NULL);
         // binary search 
         std::vector<double> b_samples(samplecount);
-    
         for(int i = 0; i < samplecount; i++){
             double x  = __random(gen);
             if(x > 1.0) x = 1.0;
@@ -281,6 +276,7 @@ int main(int argc, char *argv[]){
     double span1 = 0.0;
     for(int j = 0; j < times; j++){
         gettimeofday(&tvs, NULL);
+        std::vector<double> samples(samplecount); // store the results
         _sample.systematicaliassampling(samplecount, samples);
         gettimeofday(&tvm, NULL);
     
@@ -315,9 +311,9 @@ int main(int argc, char *argv[]){
     double span3 = 0.0;
     for(int j = 0; j < times; j++){
         gettimeofday(&tvs, NULL);
-        std::vector<double> __p = _discrete_distribution.probabilities();
+        std::vector<double> samples4(samplecount);;
         for(int i = 0 ; i < samplecount; i++){
-            _discrete_distribution(gen);
+            samples4[i] = _discrete_distribution(gen);
         }
         gettimeofday(&tvm, NULL);
         span3 += tvm.tv_sec-tvs.tv_sec + (tvm.tv_usec-tvs.tv_usec)/1000000.0;

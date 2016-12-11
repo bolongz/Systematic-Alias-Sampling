@@ -23,9 +23,13 @@
 #include <stack>
 #include <algorithm>
 
+std::random_device rd;
+std::mt19937 gen(rd());
+std::uniform_real_distribution<> __random(0.0, 1.0);
+
 class SystematicAliasSampling{
 
-    public:
+    private:
 
         typedef std::vector<double> Table; //Typedef the vector<double> type  
         typedef std::vector<double> Values; 
@@ -35,8 +39,6 @@ class SystematicAliasSampling{
         /* initial value table */
     //private:
         /* Tables after constructing the Alias Table */
-        std::random_device rd;
-    public:
         Table aliasvalue;
         Table aliasindices;
         Table aliasprobabilities;
@@ -52,6 +54,7 @@ class SystematicAliasSampling{
         
         int batchsplitnumerator = 7;
         int batchsplitdenominator = 13;
+        
 
     public:
         /* empty constructor */
@@ -130,13 +133,6 @@ class SystematicAliasSampling{
             }
          //   aliasprobabilities = F;
         }
-    public:
-        double _random(double _min, double _max){
-            //std::random_device rd;
-            std::mt19937 gen(rd());
-            std::uniform_real_distribution<> __random(_min, _max);
-            return __random(gen);
-        }
         
     private:    
         bool aldivisiable(size_t _bincount, size_t ssize){
@@ -180,7 +176,7 @@ class SystematicAliasSampling{
             }else{
                  
                 double steps = double(bincount) / samplecount;
-                double r = steps * (1.0 - _random(0.0, 1.0));
+                double r = steps * (1.0 - __random(gen));
                 //double x =  r;
                 double x =  bincount - r;
                 int i = fillfrom;
@@ -202,8 +198,8 @@ class SystematicAliasSampling{
         void simple_sas(int samplecount, Table &samples, int fillfrom = 0){
                 
                 double steps = double(bincount) / samplecount;
-                double r = _random(0.0, steps);
-                //double r = steps * (1.0 - _random(0.0, 1.0));
+                //double r = _random(0.0, steps);
+                double r = steps * (1.0 - __random(gen));
                 double x =  bincount - r;
                 int i = fillfrom;
 
@@ -218,7 +214,7 @@ class SystematicAliasSampling{
         }
         /*Gold ratio alias sampling: results in samples */
         void goldratioaliassampling(int samplecount, Table &samples){
-            double x = _random(0.0, 1.0);
+            double x = __random(gen);
             double ratio = 0.618033988749895;
             int i = 0;
             while(i < samplecount){
